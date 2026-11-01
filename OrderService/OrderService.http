@@ -1,0 +1,86 @@
+@authUrl = http://localhost:5194
+@productUrl = http://localhost:5001
+@orderUrl = http://localhost:5002
+
+### 1. Đăng nhập bài 2 (mật khẩu MD5 theo API hiện có)
+# @name login
+POST {{authUrl}}/login
+Content-Type: application/json
+
+{
+  "userName": "admin",
+  "password": "e10adc3949ba59abbe56e057f20f883e"
+}
+
+### Dán token từ response đăng nhập vào biến này
+@token = PASTE_TOKEN_HERE
+
+### 2. Xem sản phẩm và số lượng tồn kho
+GET {{productUrl}}/products
+Authorization: Bearer {{token}}
+
+### 3. Tạo đơn hàng (tên, giá và tổng tiền lấy/tính phía server)
+POST {{orderUrl}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerName": "Nguyễn Văn An",
+  "customerEmail": "an@example.com",
+  "items": [
+    { "productId": 1, "quantity": 1 },
+    { "productId": 2, "quantity": 2 }
+  ]
+}
+
+### 4. Danh sách đơn hàng
+GET {{orderUrl}}/orders
+Authorization: Bearer {{token}}
+
+### Thay ID bằng ID thực tế từ response tạo mới
+@orderId = 1
+@itemId = 1
+
+### 5. Chi tiết đơn hàng
+GET {{orderUrl}}/orders/{{orderId}}
+Authorization: Bearer {{token}}
+
+### 6. Danh sách chi tiết đơn hàng
+GET {{orderUrl}}/order_items
+Authorization: Bearer {{token}}
+
+### 7. Một chi tiết đơn hàng
+GET {{orderUrl}}/order_items/{{itemId}}
+Authorization: Bearer {{token}}
+
+### 8. Thêm mặt hàng vào đơn pending
+POST {{orderUrl}}/order_items
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "orderId": {{orderId}}, "productId": 2, "quantity": 1 }
+
+### 9. Sửa mặt hàng trong đơn pending
+PUT {{orderUrl}}/order_items/{{itemId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "productId": 1, "quantity": 2 }
+
+### 10. Xóa mặt hàng trong đơn pending
+DELETE {{orderUrl}}/order_items/{{itemId}}
+Authorization: Bearer {{token}}
+
+### 11. Cập nhật trạng thái: pending / completed / cancelled
+PUT {{orderUrl}}/orders/{{orderId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "status": "completed" }
+
+### 12. Xóa đơn hàng (xóa cả các chi tiết liên quan)
+DELETE {{orderUrl}}/orders/{{orderId}}
+Authorization: Bearer {{token}}
+
+### Không cần token
+GET {{orderUrl}}/health
