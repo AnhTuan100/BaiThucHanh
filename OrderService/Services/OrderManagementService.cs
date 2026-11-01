@@ -61,7 +61,6 @@ public sealed class OrderManagementService(OrderDbContext db, ProductClient prod
     {
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var order = await GetOrderAsync(dto.OrderId, ct);
-        CheckEditable(order);
         var product = await products.GetAsync(dto.ProductId, ct);
         CheckStock(product, order.Items.Where(i => i.ProductId == dto.ProductId).Sum(i => (long)i.Quantity) + dto.Quantity);
         var item = NewItem(product, dto.Quantity);
@@ -77,7 +76,6 @@ public sealed class OrderManagementService(OrderDbContext db, ProductClient prod
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var item = await GetItemAsync(id, ct);
         var order = await GetOrderAsync(item.OrderId, ct);
-        CheckEditable(order);
         var product = await products.GetAsync(dto.ProductId, ct);
         CheckStock(product, order.Items.Where(i => i.Id != id && i.ProductId == dto.ProductId)
             .Sum(i => (long)i.Quantity) + dto.Quantity);
@@ -101,7 +99,6 @@ public sealed class OrderManagementService(OrderDbContext db, ProductClient prod
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var item = await GetItemAsync(id, ct);
         var order = await GetOrderAsync(item.OrderId, ct);
-        CheckEditable(order);
         order.Items.Remove(item);
         db.OrderItems.Remove(item);
         Recalculate(order);
@@ -139,9 +136,4 @@ public sealed class OrderManagementService(OrderDbContext db, ProductClient prod
         order.UpdatedAt = DateTime.UtcNow;
     }
 
-    private static void CheckEditable(Order order)
-    {
-        if (order.Status != "pending")
-            throw new ApiException(409, "Chỉ được thay đổi mặt hàng khi đơn hàng đang pending.");
-    }
 }

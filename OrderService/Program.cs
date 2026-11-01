@@ -1,32 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 using OrderService.Data;
 using OrderService.Middlewares;
 using OrderService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Order Management API", Version = "v1",
-        Description = "Bài thực hành 4. Lấy JWT từ POST http://localhost:5194/login rồi nhập vào Authorize."
-    });
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization", Type = SecuritySchemeType.Http, Scheme = "Bearer",
-        BearerFormat = "JWT", In = ParameterLocation.Header
-    });
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        [new OpenApiSecurityScheme
-        {
-            Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-        }] = Array.Empty<string>()
-    });
-});
 builder.Services.AddDbContext<OrderDbContext>(options => options.UseSqlite(
     builder.Configuration.GetConnectionString("OrderDb") ?? "Data Source=orders.db"));
 builder.Services.AddHttpContextAccessor();
@@ -49,12 +27,6 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
 app.Use(async (context, next) =>
 {
     try
@@ -69,5 +41,4 @@ app.Use(async (context, next) =>
 });
 app.UseMiddleware<AuthServiceMiddleware>();
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Service = "OrderService" }));
 app.Run();
