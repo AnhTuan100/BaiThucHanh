@@ -1,30 +1,49 @@
 using Microsoft.EntityFrameworkCore;
+using ProductService.Models;
 
 namespace ProductService.Data;
 
-public sealed class Product
+public class ProductDbContext : DbContext
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = "";
-    public decimal Price { get; set; }
-    public int Quantity { get; set; }
-}
+    public ProductDbContext(DbContextOptions<ProductDbContext> options) : base(options) { }
 
-public sealed class ProductDbContext(DbContextOptions<ProductDbContext> options) : DbContext(options)
-{
-    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Product> Products { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Product>(entity =>
         {
-            entity.ToTable("products");
-            entity.Property(x => x.Name).HasMaxLength(255).IsRequired();
-            entity.Property(x => x.Price).HasPrecision(10, 2);
-            entity.HasData(
-                new Product { Id = 1, Name = "Ban phim", Price = 250000m, Quantity = 20 },
-                new Product { Id = 2, Name = "Chuot", Price = 150000m, Quantity = 30 },
-                new Product { Id = 3, Name = "Man hinh", Price = 2500000m, Quantity = 0 });
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.Name).IsRequired().HasMaxLength(255);
+            entity.Property(p => p.Description).HasColumnType("TEXT");
+            entity.Property(p => p.Price).HasColumnType("DECIMAL(10,2)");
+            entity.Property(p => p.Quantity).IsRequired();
+            entity.Property(p => p.CreatedAt).IsRequired();
+            entity.Property(p => p.UpdatedAt).IsRequired();
         });
+
+        // Seed data mẫu
+        modelBuilder.Entity<Product>().HasData(
+            new Product
+            {
+                Id = 1,
+                Name = "Laptop Dell XPS 15",
+                Description = "Laptop cao cấp dành cho lập trình viên",
+                Price = 35000000,
+                Quantity = 10,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new Product
+            {
+                Id = 2,
+                Name = "Chuột Logitech MX Master 3",
+                Description = "Chuột không dây ergonomic cao cấp",
+                Price = 2500000,
+                Quantity = 50,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
     }
 }

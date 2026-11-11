@@ -1,69 +1,114 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ProductService.Data;
+using ProductService.DTOs;
+using ProductService.Services;
 
 namespace ProductService.Controllers;
 
-public sealed class ProductRequest : IValidatableObject
-{
-    [Required, StringLength(255)]
-    public string Name { get; set; } = "";
-    [Range(typeof(decimal), "0", "99999999.99")]
-    public decimal Price { get; set; }
-    [Range(0, int.MaxValue)]
-    public int Quantity { get; set; }
-
-    public IEnumerable<ValidationResult> Validate(ValidationContext context)
-    {
-        if (decimal.Round(Price, 2) != Price)
-            yield return new ValidationResult("Gia chi duoc co toi da hai chu so thap phan.", [nameof(Price)]);
-    }
-}
-
+/// <summary>
+/// Controller quản lý sản phẩm - Bài Thực Hành Số 3
+/// Tất cả các endpoint yêu cầu xác thực JWT từ dịch vụ BaiThucHanh2 (cổng 5194).
+/// </summary>
 [ApiController]
 [Route("products")]
-public sealed class ProductsController(ProductDbContext db) : ControllerBase
+public class ProductsController : ControllerBase
 {
+    private readonly IProductService _productService;
+
+    public ProductsController(IProductService productService)
+    {
+        _productService = productService;
+    }
+
+    // GET /products
+    /// <summary>Lấy danh sách tất cả sản phẩm</summary>
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken ct) =>
-        Ok(await db.Products.AsNoTracking().OrderBy(x => x.Id).ToListAsync(ct));
+    public async Task<IActionResult> GetAll()
+    {
+        var products = await _productService.GetAllAsync();
+        return Ok(new
+        {
+            Success = true,
+            Data    = products
+        });
+    }
 
+    // GET /products/{id}
+    /// <summary>Lấy thông tin chi tiết một sản phẩm theo ID</summary>
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> Get(int id, CancellationToken ct)
+    public async Task<IActionResult> GetById(int id)
     {
-        var product = await db.Products.FindAsync([id], ct);
-        return product is null ? NotFound(new { error = "Khong tim thay san pham." }) : Ok(product);
+        var product = await _productService.GetByIdAsync(id);
+        if (product == null)
+            return NotFound(new { Success = false, Message = $"Không tìm thấy sản phẩm với ID = {id}" });
+
+        return Ok(new { Success = true, Data = product });
     }
 
+    // POST /products
+    /// <summary>Thêm một sản phẩm mới</summary>
     [HttpPost]
-    public async Task<IActionResult> Create(ProductRequest request, CancellationToken ct)
+    public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
     {
-        var product = new Product { Name = request.Name.Trim(), Price = request.Price, Quantity = request.Quantity };
-        db.Products.Add(product);
-        await db.SaveChangesAsync(ct);
-        return CreatedAtAction(nameof(Get), new { id = product.Id }, product);
+        if (!ModelState.IsValid)
+            return BadRequest(new { Success = false, Message = "Dữ liệu không hợp lệ", Errors = ModelState });
+
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return BadRequest(new { Success = false, Message = "Tên sản phẩm không được để trống" });
+
+        if (dto.Price < 0)
+            return BadRequest(new { Success = false, Message = "Giá sản phẩm không được âm" });
+
+        if (dto.Quantity < 0)
+            return BadRequest(new { Success = false, Message = "Số lượng sản phẩm không được âm" });
+
+        var created = await _productService.CreateAsync(dto);
+
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, new
+        {
+            Success = true,
+            Message = "Tạo sản phẩm thành công",
+            Data    = created
+        });
     }
 
+    // PUT /products/{id}
+    /// <summary>Cập nhật thông tin sản phẩm</summary>
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, ProductRequest request, CancellationToken ct)
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateProductDto dto)
     {
-        var product = await db.Products.FindAsync([id], ct);
-        if (product is null) return NotFound(new { error = "Khong tim thay san pham." });
-        product.Name = request.Name.Trim();
-        product.Price = request.Price;
-        product.Quantity = request.Quantity;
-        await db.SaveChangesAsync(ct);
-        return Ok(product);
+        if (!ModelState.IsValid)
+            return BadRequest(new { Success = false, Message = "Dữ liệu không hợp lệ", Errors = ModelState });
+
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return BadRequest(new { Success = false, Message = "Tên sản phẩm không được để trống" });
+
+        if (dto.Price < 0)
+            return BadRequest(new { Success = false, Message = "Giá sản phẩm không được âm" });
+
+        if (dto.Quantity < 0)
+            return BadRequest(new { Success = false, Message = "Số lượng sản phẩm không được âm" });
+
+        var updated = await _productService.UpdateAsync(id, dto);
+        if (updated == null)
+            return NotFound(new { Success = false, Message = $"Không tìm thấy sản phẩm với ID = {id}" });
+
+        return Ok(new
+        {
+            Success = true,
+            Message = "Cập nhật sản phẩm thành công",
+            Data    = updated
+        });
     }
 
+    // DELETE /products/{id}
+    /// <summary>Xóa một sản phẩm theo ID</summary>
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    public async Task<IActionResult> Delete(int id)
     {
-        var product = await db.Products.FindAsync([id], ct);
-        if (product is null) return NotFound(new { error = "Khong tim thay san pham." });
-        db.Products.Remove(product);
-        await db.SaveChangesAsync(ct);
-        return NoContent();
+        var deleted = await _productService.DeleteAsync(id);
+        if (!deleted)
+            return NotFound(new { Success = false, Message = $"Không tìm thấy sản phẩm với ID = {id}" });
+
+        return Ok(new { Success = true, Message = $"Xóa sản phẩm ID = {id} thành công" });
     }
 }

@@ -6,6 +6,8 @@ namespace ReportService.Services;
 
 // ─── Snapshot hợp đồng HTTP của OrderService ───────────────────────────────
 
+public sealed record ApiResponse<T>(bool Success, T? Data, string? Message);
+
 public sealed record OrderItemSnapshot(
     int Id, int OrderId, int ProductId,
     string ProductName, int Quantity,
@@ -34,10 +36,10 @@ public sealed class OrderClient(HttpClient client)
         if (!response.IsSuccessStatusCode)
             throw new ApiException(503, "OrderService không sẵn sàng.");
 
-        var order = await response.Content.ReadFromJsonAsync<OrderSnapshot>(ServiceSetup.Json, ct);
-        if (order is null)
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<OrderSnapshot>>(ServiceSetup.Json, ct);
+        if (body?.Data is null)
             throw new ApiException(502, "Phản hồi đơn hàng không hợp lệ.");
-        return order;
+        return body.Data;
     }
 
     /// <summary>Lấy danh sách tất cả đơn hàng để tổng hợp báo cáo theo sản phẩm.</summary>
@@ -52,7 +54,7 @@ public sealed class OrderClient(HttpClient client)
         if (!response.IsSuccessStatusCode)
             throw new ApiException(503, "OrderService không sẵn sàng.");
 
-        var orders = await response.Content.ReadFromJsonAsync<List<OrderSnapshot>>(ServiceSetup.Json, ct);
-        return orders ?? [];
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<List<OrderSnapshot>>>(ServiceSetup.Json, ct);
+        return body?.Data ?? [];
     }
 }

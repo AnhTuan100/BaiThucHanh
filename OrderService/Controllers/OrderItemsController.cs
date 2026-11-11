@@ -8,30 +8,34 @@ namespace OrderService.Controllers;
 
 [ApiController]
 [Route("order_items")]
-public sealed class OrderItemsController(OrderDbContext db, OrderManager manager) : ControllerBase
+public class OrderItemsController(OrderDbContext db, OrderManagementService service) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken ct) =>
-        Ok(await db.OrderItems.AsNoTracking().OrderBy(x => x.Id).ToListAsync(ct));
+    public async Task<IActionResult> GetAll(CancellationToken ct) => Ok(new
+    {
+        Success = true,
+        Data = await db.OrderItems.AsNoTracking().OrderBy(i => i.Id).ToListAsync(ct)
+    });
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> Get(int id, CancellationToken ct) => Ok(await manager.FindItemAsync(id, ct));
+    public async Task<IActionResult> GetById(int id, CancellationToken ct) =>
+        Ok(new { Success = true, Data = await service.GetItemAsync(id, ct) });
 
     [HttpPost]
-    public async Task<IActionResult> Create(CreateItemRequest request, CancellationToken ct)
+    public async Task<IActionResult> Create(CreateOrderItemDto dto, CancellationToken ct)
     {
-        var item = await manager.AddItemAsync(request, Request.Headers.Authorization.ToString(), ct);
-        return CreatedAtAction(nameof(Get), new { id = item.Id }, item);
+        var item = await service.CreateItemAsync(dto, ct);
+        return CreatedAtAction(nameof(GetById), new { id = item.Id }, new { Success = true, Data = item });
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, ItemRequest request, CancellationToken ct) =>
-        Ok(await manager.UpdateItemAsync(id, request, Request.Headers.Authorization.ToString(), ct));
+    public async Task<IActionResult> Update(int id, OrderItemInput dto, CancellationToken ct) =>
+        Ok(new { Success = true, Data = await service.UpdateItemAsync(id, dto, ct) });
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
-        await manager.DeleteItemAsync(id, ct);
-        return NoContent();
+        await service.DeleteItemAsync(id, ct);
+        return Ok(new { Success = true, Message = "Đã xóa chi tiết đơn hàng và tính lại tổng tiền." });
     }
 }
