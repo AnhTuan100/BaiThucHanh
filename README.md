@@ -127,11 +127,3 @@ Body và response dùng `snake_case`. Mọi request đều cần `Authorization:
 ## Cấu hình
 
 Địa chỉ service và connection string đặt tại `OrderService/appsettings.json`, `ProductService/appsettings.json`, `ReportService/appsettings.json`. Có thể ghi đè bằng biến môi trường `Services__Auth`, `Services__Products`, `Services__Orders`, `ConnectionStrings__Orders`, `ConnectionStrings__Products`, `ConnectionStrings__Reports`. Dùng `--urls` nếu muốn đổi cổng khi chạy; nhớ cập nhật địa chỉ service phụ thuộc tương ứng.
-
-## Kiểm tra tích hợp
-
-```powershell
-dotnet run --project tests/ServiceSmokeTests
-```
-
-Bộ kiểm tra tự khởi chạy cả ba service ở cổng tạm, dùng SQLite tạm rồi dọn các tiến trình và dữ liệu do nó tạo. Kiểm tra API CRUD, đăng nhập thật, token sai, dữ liệu không hợp lệ, tồn kho, sản phẩm trùng, tổng tiền thập phân, giá lịch sử, trạng thái kết thúc, xóa dây chuyền, dữ liệu sau khi khởi động lại và trường hợp service phụ thuộc bị tắt. Không tác động database sử dụng khi chạy bài.
