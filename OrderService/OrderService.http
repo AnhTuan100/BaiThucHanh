@@ -1,0 +1,68 @@
+@orders = http://localhost:5002
+@auth = http://localhost:5194
+@token = REPLACE_WITH_LOGIN_TOKEN
+
+### Lay token tu bai 2
+POST {{auth}}/login
+Content-Type: application/json
+
+{
+  "userName": "admin",
+  "password": "e10adc3949ba59abbe56e057f20f883e"
+}
+
+### Tao don hang
+POST {{orders}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customer_name": "Nguyen Van A",
+  "customer_email": "a@example.com",
+  "items": [ { "product_id": 1, "quantity": 2 } ]
+}
+
+### Danh sach don hang
+GET {{orders}}/orders
+Authorization: Bearer {{token}}
+
+### Chi tiet don hang (thay ID theo ket qua tao)
+GET {{orders}}/orders/1
+Authorization: Bearer {{token}}
+
+### Them mat hang
+POST {{orders}}/order_items
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "order_id": 1, "product_id": 2, "quantity": 1 }
+
+### Cap nhat mat hang
+PUT {{orders}}/order_items/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "product_id": 1, "quantity": 3 }
+
+### Danh sach chi tiet
+GET {{orders}}/order_items
+Authorization: Bearer {{token}}
+
+### Mot chi tiet
+GET {{orders}}/order_items/1
+Authorization: Bearer {{token}}
+
+### Xoa mot mat hang (don can it nhat hai mat hang)
+DELETE {{orders}}/order_items/2
+Authorization: Bearer {{token}}
+
+### Hoan tat don
+PUT {{orders}}/orders/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "status": "completed" }
+
+### Xoa don
+DELETE {{orders}}/orders/1
+Authorization: Bearer {{token}}
